@@ -1,0 +1,42 @@
+name: Publish potato patch
+
+# Publishing is an explicit step after reviewing the screenshot and merging.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@v6
+      - name: Test state and persistence
+        run: node --test tests/*.test.js
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs
+
+  publish:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
